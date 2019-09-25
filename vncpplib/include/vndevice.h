@@ -353,6 +353,8 @@ typedef struct {
 	double			posU;						/**< The estimated uncertainty of the current position estimate in meters. */
 	double			velU;						/**< The estimated uncertainty of the current velocity estimate in m/s. */
 	float			attitudeUncertainty;		/**< Uncertainty in attitude estimate. */
+
+	uint64_t		monotonic_time;				// system monotonic time when the Serial package is received
 } VnDeviceCompositeData;
 
 #if defined(_MSC_VER)
@@ -613,7 +615,8 @@ int vndevice_computeLengthOfBinaryGroupPayload(
  */
 void vndevice_processReceivedBinaryPacket(
 	VnDevice* vndevice,
-	char* buffer);
+	char* buffer,
+	uint64_t monotonic_time);
 
 /**
  * \brief Provides initialization to the VnDevice data structure.

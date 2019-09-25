@@ -18,6 +18,13 @@
 
 #include <geometry_msgs/Vector3Stamped.h>
 
+#include <iostream>
+
+
+#include <linux/videodev2.h>
+#include <linux/v4l2-common.h>
+
+
 namespace imu_vn_100 {
 
 // LESS HACK IS STILL HACK
@@ -68,13 +75,16 @@ void ImuVn100::SyncInfo::FixSyncRate() {
         1;
 
     if (pulse_width_us > 10000) {
-      ROS_INFO("Sync out pulse with is over 10ms. Reset to 1ms");
+      ROS_INFO("Sync out pulse width is over 10ms. Reset to 1ms");
       pulse_width_us = 1000;
     }
+    else
+      ROS_INFO("Sync out pulse width: %d", pulse_width_us);
     rate_double = rate;
   }
 
   ROS_INFO("Sync out rate: %d", rate);
+  ROS_INFO("Skip Count: %d", skip_count);
 }
 
 ImuVn100::ImuVn100(const ros::NodeHandle& pnh)
@@ -326,8 +336,8 @@ void ImuVn100::Stream(bool async) {
 
     if (binary_output_) {
       // Set the binary output data type and data rate
-      uint16_t grp1 = BG1_QTN | BG1_SYNC_IN_CNT;
-      std::list<std::string> sgrp1 = {"BG1_QTN", "BG1_SYNC_IN_CNT"};
+      uint16_t grp1 = BG1_QTN | BG1_SYNC_IN_CNT | BG1_TIME_SYNC_IN | BG1_SYNC_IN_CNT;
+      std::list<std::string> sgrp1 = {"BG1_QTN", "BG1_SYNC_IN_CNT","BG1_TIME_SYNC_IN", "BG1_SYNC_IN_CNT"};
       if (enable_rpy_) {
         grp1 |= BG1_YPR;
         sgrp1.push_back("BG1_YPR");
@@ -437,9 +447,30 @@ void ImuVn100::Disconnect() {
   vn100_disconnect(&imu_);
 }
 
+void ImuVn100::registerCallback(ImuVn100::callbackSyncOutIMU cb){
+  _cb_sync_out_imu.push_back(cb);
+  std::cout << "Registered Callback Successfully" << std::endl;
+}
+
 void ImuVn100::PublishData(const VnDeviceCompositeData& data) {
+
+  // check if it is the syncout outputing data frame
+  static uint64_t last_stamp = 0;
+
+  if (last_stamp > data.timeSyncIn){
+    if (_cb_sync_out_imu.size()){
+      for (auto& cb : _cb_sync_out_imu)
+        cb(data);
+    }
+  }
+
+  last_stamp = data.timeSyncIn;
+
+  std::cout << data.monotonic_time << " IMU ";
+  std::cout << data.timeSyncIn << std::endl;
+
   sensor_msgs::Imu imu_msg;
-  imu_msg.header.stamp = ros::Time::now();
+  imu_msg.header.stamp = ros::Time::now(); // this is bad, cos it is not true IMU time
   imu_msg.header.frame_id = frame_id_;
 
   if (imu_compensated_) {

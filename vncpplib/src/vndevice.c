@@ -33,6 +33,9 @@
 #include <string.h>
 #include "vndevice.h"
 
+#include <time.h>
+#include <assert.h>
+
 /* Defines and constants. ****************************************************/
 
 /*#define COMMAND_HEADER_SIZE				5*/
@@ -145,7 +148,8 @@ int vndevice_computeLengthOfExpectedBinaryPayload(
 
 void vndevice_processReceivedBinaryPacket(
 	VnDevice* vndevice,
-	char* buffer);
+	char* buffer,
+	uint64_t monotonic_time);
 
 uint16_t vndevice_processGroup1Data(
 	uint16_t groupField,
@@ -374,7 +378,8 @@ VN_ERROR_CODE vndevice_unregisterErrorCodeReceivedListener(
 
 void vndevice_processReceivedBinaryPacket(
 	VnDevice* vndevice,
-	char* buffer)
+	char* buffer,
+	uint64_t monotonic_time)
 {
 	VnDeviceCompositeData data;
 	uint8_t groups;
@@ -384,6 +389,9 @@ void vndevice_processReceivedBinaryPacket(
 	uint16_t numberOfDataBytesProcessed;
 
 	memset(&data, 0, sizeof(VnDeviceCompositeData));
+
+	// insert system monotonic time
+	data.monotonic_time = monotonic_time;
 
 	groups = *((uint8_t*) (buffer + 1));
 
@@ -1622,6 +1630,9 @@ void* vndevice_communicationHandler(
 
 	vndevice = (VnDevice*) vndeviceObj;
 
+	// monotonic time for the packet
+	uint64_t monotonic_time;
+
 	vncp_event_signal(vndevice->waitForThreadToStartServicingComPortEvent);
 
 	while (vndevice->continueServicingComPort) {
@@ -1734,6 +1745,12 @@ void* vndevice_communicationHandler(
 				possibleStartOfBinaryPacketFound = true;
 				binaryReceiveBuffer[binaryBufferIndex] = curChar;
 				binaryBufferIndex++;
+
+				// Found start of binary packet
+				struct timespec time;
+				const int error = clock_gettime(CLOCK_MONOTONIC, &time);
+				assert(error == 0);
+				monotonic_time = (time.tv_sec * 1e9) + (time.tv_nsec);
 			}
 
 			else if (possibleStartOfBinaryPacketFound) {
@@ -1802,7 +1819,7 @@ void* vndevice_communicationHandler(
 
 								/* We have a valid binary packet. */
 
-								vndevice_processReceivedBinaryPacket(vndevice, binaryReceiveBuffer);
+								vndevice_processReceivedBinaryPacket(vndevice, binaryReceiveBuffer, monotonic_time);
 
 							}
 							else {

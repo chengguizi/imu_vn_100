@@ -27,6 +27,8 @@
 
 #include "vn100.h"
 
+#include <vector>
+
 namespace imu_vn_100 {
 
 namespace du = diagnostic_updater;
@@ -62,6 +64,9 @@ struct DiagnosedPublisher {
  */
 class ImuVn100 {
  public:
+
+  typedef std::function<void(const VnDeviceCompositeData&)> callbackSyncOutIMU; 
+  
   static constexpr int kBaseImuRate = 800;
   static constexpr int kDefaultImuRate = 100;
   static constexpr int kDefaultSyncOutRate = 20;
@@ -74,6 +79,8 @@ class ImuVn100 {
   void Initialize();
 
   void Stream(bool async = true);
+
+  void registerCallback(callbackSyncOutIMU cb);
 
   void PublishData(const VnDeviceCompositeData& data);
 
@@ -141,6 +148,9 @@ class ImuVn100 {
 
   du::Updater updater_;
   DiagnosedPublisher pd_imu_, pd_mag_, pd_pres_, pd_temp_, pd_rpy_;
+
+  // callback for imu messages that is also generating the syncout signal
+  std::vector<callbackSyncOutIMU> _cb_sync_out_imu;
 
   void FixImuRate();
   void LoadParameters();
