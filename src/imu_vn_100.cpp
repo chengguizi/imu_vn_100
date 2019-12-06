@@ -466,8 +466,8 @@ void ImuVn100::PublishData(const VnDeviceCompositeData& data) {
 
   last_stamp = data.timeSyncIn;
 
-  std::cout << data.monotonic_time << " IMU ";
-  std::cout << data.timeSyncIn << std::endl;
+  // std::cout << data.monotonic_time << " IMU ";
+  // std::cout << data.timeSyncIn << std::endl;
 
   sensor_msgs::Imu imu_msg;
   imu_msg.header.stamp = ros::Time::now(); // this is bad, cos it is not true IMU time
