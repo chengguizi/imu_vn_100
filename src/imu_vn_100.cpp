@@ -470,7 +470,7 @@ void ImuVn100::PublishData(const VnDeviceCompositeData& data) {
   // std::cout << data.timeSyncIn << std::endl;
 
   sensor_msgs::Imu imu_msg;
-  imu_msg.header.stamp = ros::Time::now(); // this is bad, cos it is not true IMU time
+  imu_msg.header.stamp = ros::Time().fromNSec(data.monotonic_time); // ros::Time::now(); // this is bad, cos it is not true IMU time
   imu_msg.header.frame_id = frame_id_;
 
   if (imu_compensated_) {
