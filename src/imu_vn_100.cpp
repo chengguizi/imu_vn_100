@@ -460,7 +460,7 @@ void ImuVn100::PublishData(const VnDeviceCompositeData& data) {
   if (last_stamp > data.timeSyncIn){
     if (_cb_sync_out_imu.size()){
       for (auto& cb : _cb_sync_out_imu)
-        cb(data);
+        cb(data.monotonic_time, data.timeSyncIn);
     }
   }
 

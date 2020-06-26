@@ -65,7 +65,7 @@ struct DiagnosedPublisher {
 class ImuVn100 {
  public:
 
-  typedef std::function<void(const VnDeviceCompositeData&)> callbackSyncOutIMU; 
+  typedef std::function<void(uint64_t, uint64_t)> callbackSyncOutIMU; 
   
   static constexpr int kBaseImuRate = 800;
   static constexpr int kDefaultImuRate = 100;
